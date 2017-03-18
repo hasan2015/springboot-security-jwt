@@ -31,46 +31,50 @@ import com.svlada.security.model.token.JwtTokenFactory;
  */
 @Component
 public class AjaxAwareAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
-    private final ObjectMapper mapper;
-    private final JwtTokenFactory tokenFactory;
+	private final ObjectMapper mapper;
+	private final JwtTokenFactory tokenFactory;
 
-    @Autowired
-    public AjaxAwareAuthenticationSuccessHandler(final ObjectMapper mapper, final JwtTokenFactory tokenFactory) {
-        this.mapper = mapper;
-        this.tokenFactory = tokenFactory;
-    }
+	@Autowired
+	public AjaxAwareAuthenticationSuccessHandler(final ObjectMapper mapper, final JwtTokenFactory tokenFactory) {
+		this.mapper = mapper;
+		this.tokenFactory = tokenFactory;
+	}
 
-    @Override
-    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
-            Authentication authentication) throws IOException, ServletException {
-        UserContext userContext = (UserContext) authentication.getPrincipal();
-        
-        JwtToken accessToken = tokenFactory.createAccessJwtToken(userContext);
-        JwtToken refreshToken = tokenFactory.createRefreshToken(userContext);
-        
-        Map<String, String> tokenMap = new HashMap<String, String>();
-        tokenMap.put("token", accessToken.getToken());
-        tokenMap.put("refreshToken", refreshToken.getToken());
+	/**
+	 * 在成功验证委托创建JWT令牌的是在* AjaxAwareAuthenticationSuccessHandler* 中实现
+	 * 这个类的责任是添加JSON载荷包含JWT访问和刷新令牌到HTTP响应的body
+	 */
+	@Override
+	public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
+			Authentication authentication) throws IOException, ServletException {
+		UserContext userContext = (UserContext) authentication.getPrincipal();
 
-        response.setStatus(HttpStatus.OK.value());
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        mapper.writeValue(response.getWriter(), tokenMap);
+		JwtToken accessToken = tokenFactory.createAccessJwtToken(userContext);
+		JwtToken refreshToken = tokenFactory.createRefreshToken(userContext);
 
-        clearAuthenticationAttributes(request);
-    }
+		Map<String, String> tokenMap = new HashMap<String, String>();
+		tokenMap.put("token", accessToken.getToken());
+		tokenMap.put("refreshToken", refreshToken.getToken());
 
-    /**
-     * Removes temporary authentication-related data which may have been stored
-     * in the session during the authentication process..
-     * 
-     */
-    protected final void clearAuthenticationAttributes(HttpServletRequest request) {
-        HttpSession session = request.getSession(false);
+		response.setStatus(HttpStatus.OK.value());
+		response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+		mapper.writeValue(response.getWriter(), tokenMap);
 
-        if (session == null) {
-            return;
-        }
+		clearAuthenticationAttributes(request);
+	}
 
-        session.removeAttribute(WebAttributes.AUTHENTICATION_EXCEPTION);
-    }
+	/**
+	 * Removes temporary authentication-related data which may have been stored
+	 * in the session during the authentication process..
+	 * 
+	 */
+	protected final void clearAuthenticationAttributes(HttpServletRequest request) {
+		HttpSession session = request.getSession(false);
+
+		if (session == null) {
+			return;
+		}
+
+		session.removeAttribute(WebAttributes.AUTHENTICATION_EXCEPTION);
+	}
 }

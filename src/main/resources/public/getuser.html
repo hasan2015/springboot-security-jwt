@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<script src="js/jquery-1.10.2.min.js"></script>
+<title>Demo</title>
+</head>
+<body>
+	<div id="console1"></div>
+	<div id="console2"></div>
+	<script>
+		var token;
+		//alert('');
+		$(function() {
+			$
+					.ajax({
+						method : 'GET',
+						url : '/api/me',
+						cache : 'false',
+						dataType : 'json',
+
+						//beforeSend:function(xhr){
+						//	xhr.setRequestHeader('X-Authorization', "");
+						//	},
+						headers : {
+							'X-Authorization' : 'Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJzdmxhZGFAZ21haWwuY29tIiwic2NvcGVzIjpbIlJPTEVfQURNSU4iLCJST0xFX1BSRU1JVU1fTUVNQkVSIl0sImlzcyI6Imh0dHA6Ly9zdmxhZGEuY29tIiwiaWF0IjoxNDg5ODA0NTc2LCJleHAiOjE0ODk4MDU0NzZ9.j6bP-05nN4XPl72PIH_1jIeIY9j1xgvUUqf8Dcg6m-4JMeoa1ANvu6i4Xg94FrPjoZcoa5y7bDB6kmDSeqR8GA'
+						},
+						success : function(data) {
+							$('#console1').text('username：' + data.username);
+							$('#console2').text('authorities：' + data.authorities);
+							token = data;
+						}
+					});
+		});
+	</script>
+</body>
+</html>

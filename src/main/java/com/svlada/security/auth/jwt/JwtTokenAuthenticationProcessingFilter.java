@@ -26,41 +26,45 @@ import com.svlada.security.model.token.RawAccessJwtToken;
  * 
  * @author vladimir.stankovic
  *
- * Aug 5, 2016
+ *         Aug 5, 2016
  */
 public class JwtTokenAuthenticationProcessingFilter extends AbstractAuthenticationProcessingFilter {
-    private final AuthenticationFailureHandler failureHandler;
-    private final TokenExtractor tokenExtractor;
-    
-    @Autowired
-    public JwtTokenAuthenticationProcessingFilter(AuthenticationFailureHandler failureHandler, 
-            TokenExtractor tokenExtractor, RequestMatcher matcher) {
-        super(matcher);
-        this.failureHandler = failureHandler;
-        this.tokenExtractor = tokenExtractor;
-    }
+	private final AuthenticationFailureHandler failureHandler;
+	private final TokenExtractor tokenExtractor;
 
-    @Override
-    public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response)
-            throws AuthenticationException, IOException, ServletException {
-        String tokenPayload = request.getHeader(WebSecurityConfig.JWT_TOKEN_HEADER_PARAM);
-        RawAccessJwtToken token = new RawAccessJwtToken(tokenExtractor.extract(tokenPayload));
-        return getAuthenticationManager().authenticate(new JwtAuthenticationToken(token));
-    }
+	@Autowired
+	public JwtTokenAuthenticationProcessingFilter(AuthenticationFailureHandler failureHandler,
+			TokenExtractor tokenExtractor, RequestMatcher matcher) {
+		super(matcher);
+		this.failureHandler = failureHandler;
+		this.tokenExtractor = tokenExtractor;
+	}
 
-    @Override
-    protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain,
-            Authentication authResult) throws IOException, ServletException {
-        SecurityContext context = SecurityContextHolder.createEmptyContext();
-        context.setAuthentication(authResult);
-        SecurityContextHolder.setContext(context);
-        chain.doFilter(request, response);
-    }
+	/**
+	 * 检查访问令牌在X-Authorization头。如果发现访问令牌的头,委托认证JwtAuthenticationProvider否则抛出身份验证异常
+	 */
+	@Override
+	public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response)
+			throws AuthenticationException, IOException, ServletException {
+		String tokenPayload = request.getHeader(WebSecurityConfig.JWT_TOKEN_HEADER_PARAM);
+		RawAccessJwtToken token = new RawAccessJwtToken(tokenExtractor.extract(tokenPayload));
+		//调用成功或失败策略基于由JwtAuthenticationProvider执行身份验证过程的结果
+		return getAuthenticationManager().authenticate(new JwtAuthenticationToken(token));
+	}
 
-    @Override
-    protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response,
-            AuthenticationException failed) throws IOException, ServletException {
-        SecurityContextHolder.clearContext();
-        failureHandler.onAuthenticationFailure(request, response, failed);
-    }
+	@Override
+	protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain,
+			Authentication authResult) throws IOException, ServletException {
+		SecurityContext context = SecurityContextHolder.createEmptyContext();
+		context.setAuthentication(authResult);
+		SecurityContextHolder.setContext(context);
+		chain.doFilter(request, response);
+	}
+
+	@Override
+	protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response,
+			AuthenticationException failed) throws IOException, ServletException {
+		SecurityContextHolder.clearContext();
+		failureHandler.onAuthenticationFailure(request, response, failed);
+	}
 }

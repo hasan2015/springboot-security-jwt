@@ -48,7 +48,7 @@ public class JwtAuthenticationProvider implements AuthenticationProvider {
         List<GrantedAuthority> authorities = scopes.stream()
                 .map(authority -> new SimpleGrantedAuthority(authority))
                 .collect(Collectors.toList());
-        
+        // 从访问令牌中提取身份和授权声明和使用它们来创建UserContext
         UserContext context = UserContext.create(subject, authorities);
         
         return new JwtAuthenticationToken(context, context.getAuthorities());

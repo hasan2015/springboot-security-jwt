@@ -56,7 +56,7 @@ public class AjaxAuthenticationProvider implements AuthenticationProvider {
         List<GrantedAuthority> authorities = user.getRoles().stream()
                 .map(authority -> new SimpleGrantedAuthority(authority.getRole().authority()))
                 .collect(Collectors.toList());
-        
+        //创建用户上下文，你需要一些你需要的用户数据来填充（例如 用户名 和用户密码）
         UserContext userContext = UserContext.create(user.getUsername(), authorities);
         
         return new UsernamePasswordAuthenticationToken(userContext, null, userContext.getAuthorities());

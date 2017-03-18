@@ -25,59 +25,66 @@ import com.svlada.common.WebUtil;
 import com.svlada.security.exceptions.AuthMethodNotSupportedException;
 
 /**
- * AjaxLoginProcessingFilter
+ * AjaxLoginProcessingFilter Ajax 登录处理过滤器
  * 
  * @author vladimir.stankovic
  *
- * Aug 3, 2016
+ *         Aug 3, 2016
  */
 public class AjaxLoginProcessingFilter extends AbstractAuthenticationProcessingFilter {
-    private static Logger logger = LoggerFactory.getLogger(AjaxLoginProcessingFilter.class);
+	private static Logger logger = LoggerFactory.getLogger(AjaxLoginProcessingFilter.class);
 
-    private final AuthenticationSuccessHandler successHandler;
-    private final AuthenticationFailureHandler failureHandler;
+	private final AuthenticationSuccessHandler successHandler;
+	private final AuthenticationFailureHandler failureHandler;
 
-    private final ObjectMapper objectMapper;
-    
-    public AjaxLoginProcessingFilter(String defaultProcessUrl, AuthenticationSuccessHandler successHandler, 
-            AuthenticationFailureHandler failureHandler, ObjectMapper mapper) {
-        super(defaultProcessUrl);
-        this.successHandler = successHandler;
-        this.failureHandler = failureHandler;
-        this.objectMapper = mapper;
-    }
+	private final ObjectMapper objectMapper;
 
-    @Override
-    public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response)
-            throws AuthenticationException, IOException, ServletException {
-        if (!HttpMethod.POST.name().equals(request.getMethod()) || !WebUtil.isAjax(request)) {
-            if(logger.isDebugEnabled()) {
-                logger.debug("Authentication method not supported. Request method: " + request.getMethod());
-            }
-            throw new AuthMethodNotSupportedException("Authentication method not supported");
-        }
+	public AjaxLoginProcessingFilter(String defaultProcessUrl, AuthenticationSuccessHandler successHandler,
+			AuthenticationFailureHandler failureHandler, ObjectMapper mapper) {
+		super(defaultProcessUrl);
+		this.successHandler = successHandler;
+		this.failureHandler = failureHandler;
+		this.objectMapper = mapper;
+	}
 
-        LoginRequest loginRequest = objectMapper.readValue(request.getReader(), LoginRequest.class);
-        
-        if (StringUtils.isBlank(loginRequest.getUsername()) || StringUtils.isBlank(loginRequest.getPassword())) {
-            throw new AuthenticationServiceException("Username or Password not provided");
-        }
+	/**
+	 * 反序列化JSON和基本验证的主要任务都是在的
+	 */
+	@Override
+	public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response)
+			throws AuthenticationException, IOException, ServletException {
+		if (!HttpMethod.POST.name().equals(request.getMethod()) || !WebUtil.isAjax(request)) {
+			if (logger.isDebugEnabled()) {
+				logger.debug("Authentication method not supported. Request method: " + request.getMethod());
+			}
+			throw new AuthMethodNotSupportedException("Authentication method not supported");
+		}
 
-        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword());
+		LoginRequest loginRequest = objectMapper.readValue(request.getReader(), LoginRequest.class);
 
-        return this.getAuthenticationManager().authenticate(token);
-    }
+		if (StringUtils.isBlank(loginRequest.getUsername()) || StringUtils.isBlank(loginRequest.getPassword())) {
+			throw new AuthenticationServiceException("Username or Password not provided");
+		}
 
-    @Override
-    protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain,
-            Authentication authResult) throws IOException, ServletException {
-        successHandler.onAuthenticationSuccess(request, response, authResult);
-    }
+		UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(loginRequest.getUsername(),
+				loginRequest.getPassword());
+		// 在成功验证JSON的主要检验逻辑是委托给AjaxAuthenticationProvider类实现。
+		return this.getAuthenticationManager().authenticate(token);//
+	}
 
-    @Override
-    protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response,
-            AuthenticationException failed) throws IOException, ServletException {
-        SecurityContextHolder.clearContext();
-        failureHandler.onAuthenticationFailure(request, response, failed);
-    }
+	/**
+	 * 在成功验证委托创建JWT令牌的是在* AjaxAwareAuthenticationSuccessHandler* 中实现
+	 */
+	@Override
+	protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain,
+			Authentication authResult) throws IOException, ServletException {
+		successHandler.onAuthenticationSuccess(request, response, authResult);
+	}
+
+	@Override
+	protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response,
+			AuthenticationException failed) throws IOException, ServletException {
+		SecurityContextHolder.clearContext();
+		failureHandler.onAuthenticationFailure(request, response, failed);
+	}
 }
